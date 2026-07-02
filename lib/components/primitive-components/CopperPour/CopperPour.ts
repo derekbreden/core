@@ -147,6 +147,11 @@ export class CopperPour extends PrimitiveComponent<typeof copperPourProps> {
               layers: [sp.layer, _toLy],
               from_layer: sp.layer,
               to_layer: _toLy,
+              // the via must carry the subcircuit_id, not just its pcb_trace: the copper-pour
+              // solver resolves an element's pour net by that element's own subcircuit_id (it
+              // gates connectivity on it), so a via without one keys to "unconnected-via" and
+              // its own plane pour rings it instead of flooding onto it — the stitch would float.
+              subcircuit_id: subcircuit?.subcircuit_id ?? undefined,
             } as any)
             if (process.env.POUR_SKIP_DEBUG)
               console.error(
