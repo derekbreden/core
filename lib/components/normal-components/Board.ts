@@ -131,6 +131,21 @@ export class Board
     if (layerCount === 4) {
       return ["top", "bottom", "inner1", "inner2"] as const
     }
+    if (layerCount === 6) {
+      return ["top", "bottom", "inner1", "inner2", "inner3", "inner4"] as const
+    }
+    if (layerCount === 8) {
+      return [
+        "top",
+        "bottom",
+        "inner1",
+        "inner2",
+        "inner3",
+        "inner4",
+        "inner5",
+        "inner6",
+      ] as const
+    }
     return ["top", "bottom"] as const
   }
 

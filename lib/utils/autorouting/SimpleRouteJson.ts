@@ -109,6 +109,10 @@ export type SimpleRouteJson = Omit<
   min_via_hole_diameter?: number
   min_via_pad_diameter?: number
   defaultObstacleMargin?: number
+  // PATCH(homesodamachine): plumbs autorouter.viaMode through to the capacity-autorouter fork
+  // (same channel as defaultObstacleMargin). "through-hole" routes on all copper layers but only
+  // births a via where the full board column is clear, emitting it top<->bottom.
+  viaMode?: "through-hole" | "any"
   minTraceToPadEdgeClearance?: number
   minViaEdgeToPadEdgeClearance?: number
   minViaHoleEdgeToViaHoleEdgeClearance?: number

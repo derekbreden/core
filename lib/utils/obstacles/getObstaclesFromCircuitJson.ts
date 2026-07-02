@@ -43,6 +43,22 @@ export const getObstaclesFromCircuitJson = (
   circuitJson: AnyCircuitElement[],
   connMap?: ConnectivityMap,
 ) => {
+  // PATCH(homesodamachine): the module-level EVERY_LAYER is a fixed ["top","inner1","inner2",
+  // "bottom"], so on a 6-/8-layer board a plated-hole or hole barrel (conductive on EVERY copper
+  // layer) is marked an obstacle only on those four — leaving inner3+ unguarded, where a trace or
+  // via could route straight through the barrel. Shadow it with the board's real layer stack so a
+  // through-hole barrel blocks routing on every layer it actually occupies.
+  const EVERY_LAYER = (() => {
+    const nl =
+      (circuitJson.find((e) => e.type === "pcb_board") as any)?.num_layers ?? 2
+    return nl <= 2
+      ? ["top", "bottom"]
+      : [
+          "top",
+          ...Array.from({ length: nl - 2 }, (_, i) => `inner${i + 1}`),
+          "bottom",
+        ]
+  })()
   const withNetId = (idList: string[]) =>
     connMap
       ? idList.concat(
@@ -291,8 +307,10 @@ export const getObstaclesFromCircuitJson = (
             x: element.x,
             y: element.y,
           },
-          width: element.hole_diameter,
-          height: element.hole_diameter,
+          // PATCH(homesodamachine): +0.3mm clearance ring so the router keeps traces off a
+          // drilled hole (a trace across a non-plated hole is severed by the drill).
+          width: element.hole_diameter + 0.3,
+          height: element.hole_diameter + 0.3,
           connectedTo: [],
         })
       }

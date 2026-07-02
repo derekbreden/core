@@ -896,6 +896,37 @@ export class Group<Props extends z.ZodType<any, any, any> = typeof groupProps>
         subcircuit_id: this.subcircuit_id,
         subcircuitComponent: this,
       })
+    {
+      // PATCH(homesodamachine): plumb autorouter.traceClearance -> the capacity
+      // solver's defaultObstacleMargin + minTraceToPadEdgeClearance so trace
+      // spacing is tunable, decoupled from minTraceWidth (the drawn copper width).
+      // Stock core never sets these, pinning the realized floor at ~0.115mm.
+      // See hardware/pcb/carrier/_clrsweep.ts for the sweep that found 0.3mm.
+      const _tc =
+        (props as any).autorouter &&
+        typeof (props as any).autorouter === "object"
+          ? (props as any).autorouter.traceClearance
+          : undefined
+      if (typeof _tc === "number" && _tc > 0) {
+        baseSimpleRouteJson.defaultObstacleMargin = _tc
+        baseSimpleRouteJson.minTraceToPadEdgeClearance = _tc
+      }
+      // PATCH(homesodamachine): plumb autorouter.viaMode -> the SimpleRouteJson (same channel as
+      // traceClearance). "through-hole" tells the capacity-autorouter fork to route on all copper
+      // layers but only birth a via where the full board column is clear, emitting it top<->bottom
+      // — JLCPCB standard assembly drills through-holes only, no blind/buried. Signals still route
+      // on ALL layers (the poured inner planes are separate copperpour entities the router doesn't
+      // see as obstacles); EVERY_LAYER (fixed above) makes a plated-hole barrel block routing on
+      // every layer it occupies so availableZ is honest, and the DRC proves no barrel crosses
+      // foreign copper. Default (unset) = stock blind/buried behavior.
+      const _vm =
+        (props as any).autorouter &&
+        typeof (props as any).autorouter === "object"
+          ? (props as any).autorouter.viaMode
+          : undefined
+      if (_vm === "through-hole" || _vm === "any")
+        baseSimpleRouteJson.viaMode = _vm
+    }
     const routingPhasePlans = this._getRoutingPhasePlans()
     const hasPhasedAutorouting = Group_hasPhasedAutorouting(routingPhasePlans)
     const outputTraces: SimplifiedPcbTrace[] = []

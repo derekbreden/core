@@ -129,6 +129,66 @@ export const getSimpleRouteJsonFromCircuitJson = ({
       group: pcbGroup,
     }),
   )
+  // PATCH(homesodamachine): reserve each SMD-plane-pad stitch-via spot as a router obstacle.
+  // An SMD pad whose net is poured on another layer gets a stitch via in the copper-pour
+  // render — which runs AFTER autorouting — so the router doesn't know the via is coming and
+  // will lay a different-net trace across that spot on the pour layer, shorting to the via.
+  // Drop an obstacle (the via footprint, on the pour layer) at each such pad so the router
+  // routes other nets around it; the pour render then drops the real via in the reserved gap.
+  if (subcircuitComponent) {
+    const _pourLayersByRep = /* @__PURE__ */ new Map<string, Set<string>>()
+    for (const cp of (subcircuitComponent as any).selectAll("copperpour")) {
+      let _pn: any
+      try {
+        _pn = cp.getSubcircuit().selectOne(cp._parsedProps.connectsTo)
+      } catch {}
+      const _ly = cp._parsedProps && cp._parsedProps.layer
+      if (_pn?.source_net_id && typeof _ly === "string") {
+        const _rep =
+          sharedConnMap.getNetConnectedToId(_pn.source_net_id) ??
+          _pn.source_net_id
+        let _set = _pourLayersByRep.get(_rep)
+        if (!_set) {
+          _set = /* @__PURE__ */ new Set<string>()
+          _pourLayersByRep.set(_rep, _set)
+        }
+        _set.add(_ly)
+      }
+    }
+    if (_pourLayersByRep.size > 0) {
+      const _viaPad = minViaPadDiameter ?? board?.min_via_pad_diameter ?? 0.5
+      for (const sp of db.pcb_smtpad.list() as any[]) {
+        if (!sp.pcb_port_id) continue
+        const _rep = sharedConnMap.getNetConnectedToId(sp.pcb_port_id)
+        const _set = _rep && _pourLayersByRep.get(_rep)
+        if (!_set) continue
+        // Pad's net poured on a layer other than the pad's? Then the pour render drops a
+        // THROUGH (top<->bottom) stitch via. Reserve the via footprint on EVERY routable layer
+        // except the pad's own (which already carries the SMD pad obstacle) so no foreign net
+        // routes under the barrel on any layer — with all-layer routing a signal can otherwise
+        // cross a stitch via on an inner layer (the barrel is conductive on every layer).
+        let _needs = false
+        for (const _pl of _set) if (_pl !== sp.layer) _needs = true
+        if (!_needs) continue
+        const _nl = board?.num_layers ?? 2
+        const _resLy = ["top", "bottom"]
+        for (let _i = 1; _i <= _nl - 2; _i++) _resLy.push("inner" + _i)
+        const _reserve = _resLy.filter((l) => l !== sp.layer)
+        obstacles.push({
+          type: "oval",
+          layers: _reserve,
+          center: { x: sp.x, y: sp.y },
+          width: _viaPad,
+          height: _viaPad,
+          connectedTo: [],
+        } as any)
+        if (process.env.POUR_SKIP_DEBUG)
+          console.error(
+            `[stitch-keepout] ${sp.pcb_smtpad_id} @(${sp.x.toFixed(2)},${sp.y.toFixed(2)}) reserve ${_reserve.join(",")}`,
+          )
+      }
+    }
+  }
 
   // SRJ uses two separate fields for routing state:
   // - connections: copper the current autorouter still needs to create.
@@ -598,6 +658,74 @@ export const getSimpleRouteJsonFromCircuitJson = ({
     }
   }
 
+  let routedConns = allConns
+  if (subcircuitComponent) {
+    const pouredReps = /* @__PURE__ */ new Set<string>()
+    for (const cp of (subcircuitComponent as any).selectAll("copperpour")) {
+      let pouredNet: any
+      try {
+        pouredNet = cp.getSubcircuit().selectOne(cp._parsedProps.connectsTo)
+      } catch {}
+      if (pouredNet?.source_net_id) {
+        pouredReps.add(
+          sharedConnMap.getNetConnectedToId(pouredNet.source_net_id) ??
+            pouredNet.source_net_id,
+        )
+      }
+    }
+    // PATCH(homesodamachine): second-pass carve. A manual <pcbtrace> hand-routes a
+    // connection the capacity autorouter packs badly; carve that connection out so
+    // the autorouter leaves it alone and the clean pcbtrace copper is the only copper
+    // on it. The pcbtrace's first/last wire points land on the connection's two pads,
+    // so we match a connection's pointsToConnect xy against pcbtrace endpoints. The
+    // <trace> stays as the canonical netlist. See clean-pass.ts (the route generator).
+    const manualEnds: Array<[any, any]> = []
+    for (const pt of (subcircuitComponent as any).selectAll("pcbtrace")) {
+      const route = pt._parsedProps?.route
+      if (!Array.isArray(route)) continue
+      const w = route.filter(
+        (p: any) =>
+          p &&
+          p.route_type === "wire" &&
+          typeof p.x === "number" &&
+          typeof p.y === "number",
+      )
+      if (w.length >= 2) manualEnds.push([w[0], w[w.length - 1]])
+    }
+    const nearPt = (a: any, b: any) =>
+      a && b && Math.abs(a.x - b.x) < 0.06 && Math.abs(a.y - b.y) < 0.06
+    const connIsManual = (conn: SimpleRouteConnection) => {
+      const ps = conn.pointsToConnect
+      if (!ps || ps.length !== 2) return false
+      for (const [s, e] of manualEnds)
+        if (
+          (nearPt(ps[0], s) && nearPt(ps[1], e)) ||
+          (nearPt(ps[0], e) && nearPt(ps[1], s))
+        )
+          return true
+      return false
+    }
+    const connIsPoured = (conn: SimpleRouteConnection) => {
+      for (const pt of conn.pointsToConnect) {
+        const id = (pt as any).pcb_port_id ?? pt.pointId
+        if (!id) continue
+        const rep = sharedConnMap.getNetConnectedToId(id)
+        if (rep && pouredReps.has(rep)) return true
+      }
+      return false
+    }
+    if (pouredReps.size > 0 || manualEnds.length > 0) {
+      routedConns = allConns.filter(
+        (conn) => !connIsPoured(conn) && !connIsManual(conn),
+      )
+      if (process.env.POUR_SKIP_DEBUG) {
+        console.error(
+          `[pour-skip] pouredReps=${pouredReps.size} manual=${manualEnds.length} allConns=${allConns.length} routed=${routedConns.length} skipped=${allConns.length - routedConns.length}`,
+        )
+      }
+    }
+  }
+
   const resolvedMinViaHoleDiameter =
     minViaHoleDiameter ?? board?.min_via_hole_diameter
   const resolvedMinViaPadDiameter =
@@ -621,7 +749,7 @@ export const getSimpleRouteJsonFromCircuitJson = ({
     simpleRouteJson: {
       bounds,
       obstacles,
-      connections: allConns,
+      connections: routedConns,
       traces:
         preservedRoutedSubcircuitTraces.length > 0
           ? preservedRoutedSubcircuitTraces

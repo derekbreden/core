@@ -53,6 +53,10 @@ const calculateCcwRotation = (
   }
 
   const normalizedRotation = ((totalRotation % 360) + 360) % 360
+  // carrier: vertical footprint silk always reads top-to-bottom (270), never
+  // bottom-to-top (90) — so a part's auto ref-des reads the same direction as
+  // its pin labels (the footprinter bakes those two with opposite rotations).
+  if (normalizedRotation === 90) return 270
 
   return normalizedRotation
 }
