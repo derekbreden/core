@@ -3570,6 +3570,37 @@ var getViaDiameterDefaultsWithOverrides = (overrides, pcbStyle) => {
   };
 };
 
+// lib/utils/computeFanWaypoints.ts
+var monotone = (vals, sgn) => vals.every((v, i) => i === 0 || sgn * (v - vals[i - 1]) >= -1e-6);
+function computeFanWaypoints(s, t, orientation, stub = 1) {
+  const sgx = Math.sign(t.x - s.x) || 1;
+  const sgy = Math.sign(t.y - s.y) || 1;
+  let p1;
+  let p2;
+  if (orientation === "columnToColumn") {
+    const x1 = s.x + sgx * stub;
+    p1 = { x: x1, y: s.y };
+    p2 = { x: x1 + sgx * Math.abs(t.y - s.y), y: t.y };
+  } else if (orientation === "rowToRow") {
+    const y1 = s.y + sgy * stub;
+    p1 = { x: s.x, y: y1 };
+    p2 = { x: t.x, y: y1 + sgy * Math.abs(t.x - s.x) };
+  } else if (orientation === "rowToColumn") {
+    const y1 = s.y + sgy * stub;
+    p1 = { x: s.x, y: y1 };
+    p2 = { x: s.x + sgx * Math.abs(t.y - y1), y: t.y };
+  } else if (orientation === "columnToRow") {
+    const x1 = s.x + sgx * stub;
+    p1 = { x: x1, y: s.y };
+    p2 = { x: t.x, y: s.y + sgy * Math.abs(t.x - x1) };
+  } else {
+    return null;
+  }
+  if (!monotone([s.x, p1.x, p2.x, t.x], sgx) || !monotone([s.y, p1.y, p2.y, t.y], sgy))
+    return null;
+  return [p1, p2];
+}
+
 // lib/components/primitive-components/Port/areAllPcbPrimitivesOverlapping.ts
 var areAllPcbPrimitivesOverlapping = (pcbPrimitives) => {
   if (pcbPrimitives.length <= 1) return true;
@@ -3714,8 +3745,10 @@ function Trace_doInitialPcbManualTraceRender(trace) {
   const subcircuit = trace.getSubcircuit();
   const hasPcbPath = props.pcbPath !== void 0;
   const wantsStraightLine = Boolean(props.pcbStraightLine);
+  const fanOrientation = props.pcbFan;
+  const wantsFan = Boolean(fanOrientation);
   const inflatedPcbTraces = trace._inflatedPcbTraces ?? [];
-  if (!hasPcbPath && !wantsStraightLine && inflatedPcbTraces.length === 0)
+  if (!hasPcbPath && !wantsStraightLine && !wantsFan && inflatedPcbTraces.length === 0)
     return;
   let allPortsFound;
   let ports;
@@ -3903,6 +3936,48 @@ function Trace_doInitialPcbManualTraceRender(trace) {
         end_pcb_port_id: endPort.pcb_port_id
       }
     ];
+    const traceLength2 = getTraceLength(route2);
+    const pcb_trace2 = db.pcb_trace.insert({
+      route: route2,
+      source_trace_id: trace.source_trace_id,
+      subcircuit_id: subcircuit?.subcircuit_id ?? void 0,
+      pcb_group_id: trace.getGroup()?.pcb_group_id ?? void 0,
+      trace_length: traceLength2
+    });
+    trace._portsRoutedOnPcb = ports;
+    trace.pcb_trace_id = pcb_trace2.pcb_trace_id;
+    trace._insertErrorIfTraceIsOutsideBoard(route2, ports);
+    return;
+  }
+  if (wantsFan && !hasPcbPath) {
+    if (!ports || ports.length < 2) {
+      trace.renderError("pcbFan requires exactly two connected ports");
+      return;
+    }
+    const [startPort, endPort] = ports;
+    const startLayers = startPort.getAvailablePcbLayers();
+    const endLayers = endPort.getAvailablePcbLayers();
+    const sharedLayer = startLayers.find((layer3) => endLayers.includes(layer3));
+    const layer2 = sharedLayer ?? startLayers[0] ?? endLayers[0] ?? "top";
+    const startPos = startPort._getGlobalPcbPositionAfterLayout();
+    const endPos = endPort._getGlobalPcbPositionAfterLayout();
+    const bends = computeFanWaypoints(startPos, endPos, fanOrientation);
+    if (!bends) {
+      console.warn(
+        `[pcbFan] ${trace} (${fanOrientation}): fixed fan doesn't fit \u2014 leaving for the autorouter`
+      );
+      return;
+    }
+    const routePoints = [startPos, ...bends, endPos];
+    const route2 = routePoints.map((p, index) => ({
+      route_type: "wire",
+      x: p.x,
+      y: p.y,
+      width,
+      layer: layer2,
+      ...index === 0 ? { start_pcb_port_id: startPort.pcb_port_id } : {},
+      ...index === routePoints.length - 1 ? { end_pcb_port_id: endPort.pcb_port_id } : {}
+    }));
     const traceLength2 = getTraceLength(route2);
     const pcb_trace2 = db.pcb_trace.insert({
       route: route2,
@@ -4122,6 +4197,9 @@ function Trace_doInitialPcbTraceRender(trace) {
     return;
   }
   if (props.pcbStraightLine) {
+    return;
+  }
+  if (props.pcbFan && trace.pcb_trace_id) {
     return;
   }
   if (!subcircuit._shouldUseTraceByTraceRouting()) {

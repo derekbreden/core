@@ -121,6 +121,12 @@ export function Trace_doInitialPcbTraceRender(trace: Trace) {
     return
   }
 
+  // A placed fan (see PcbManualTraceRender) is already fixed copper; an infeasible fan
+  // wasn't placed (no pcb_trace_id) and falls through to the autorouter below.
+  if ((props as any).pcbFan && trace.pcb_trace_id) {
+    return
+  }
+
   if (!subcircuit._shouldUseTraceByTraceRouting()) {
     return
   }
