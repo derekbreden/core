@@ -7,9 +7,9 @@ import { clipTraceEndAtPad } from "../../../utils/trace-clipping/clipTraceEndAtP
 import { getViaDiameterDefaults } from "../../../utils/pcbStyle/getViaDiameterDefaults"
 import type { ManualPcbPathPoint } from "lib/utils/pcbTraceRouteToPcbPath"
 import {
-  computeFanWaypoints,
-  type FanOrientation,
-} from "lib/utils/computeFanWaypoints"
+  computeCombWaypoints,
+  type CombOrientation,
+} from "lib/utils/computeCombWaypoints"
 import { TraceConnectionError } from "lib/errors"
 import { getPcbSelectorErrorForTracePort } from "./getPcbSelectorErrorForTracePort"
 import { jlcMinTolerances } from "@tscircuit/jlcpcb-manufacturing-specs"
@@ -51,14 +51,14 @@ export function Trace_doInitialPcbManualTraceRender(trace: Trace) {
 
   const hasPcbPath = props.pcbPath !== undefined
   const wantsStraightLine = Boolean(props.pcbStraightLine)
-  const fanOrientation = (props as any).pcbFan as FanOrientation | undefined
-  const wantsFan = Boolean(fanOrientation)
+  const combOrientation = (props as any).pcbComb as CombOrientation | undefined
+  const wantsComb = Boolean(combOrientation)
   const inflatedPcbTraces = trace._inflatedPcbTraces ?? []
 
   if (
     !hasPcbPath &&
     !wantsStraightLine &&
-    !wantsFan &&
+    !wantsComb &&
     inflatedPcbTraces.length === 0
   )
     return
@@ -309,9 +309,9 @@ export function Trace_doInitialPcbManualTraceRender(trace: Trace) {
     return
   }
 
-  if (wantsFan && !hasPcbPath) {
+  if (wantsComb && !hasPcbPath) {
     if (!ports || ports.length < 2) {
-      trace.renderError("pcbFan requires exactly two connected ports")
+      trace.renderError("pcbComb requires exactly two connected ports")
       return
     }
 
@@ -324,17 +324,17 @@ export function Trace_doInitialPcbManualTraceRender(trace: Trace) {
       endLayers[0] ??
       "top") as LayerRef
 
-    // The two pads are the route endpoints; the fan is computed in global coordinates
+    // The two pads are the route endpoints; the comb is computed in global coordinates
     // (both positions are known by this phase), so no per-component transform is needed.
     const startPos = startPort._getGlobalPcbPositionAfterLayout()
     const endPos = endPort._getGlobalPcbPositionAfterLayout()
-    const bends = computeFanWaypoints(startPos, endPos, fanOrientation!)
+    const bends = computeCombWaypoints(startPos, endPos, combOrientation!)
 
-    // A fan whose fixed shape would overshoot (offset exceeds gap) is left unrouted so the
+    // A comb whose fixed shape would overshoot (offset exceeds gap) is left unrouted so the
     // autorouter handles it, rather than drawing backtracking copper.
     if (!bends) {
       console.warn(
-        `[pcbFan] ${trace} (${fanOrientation}): fixed fan doesn't fit — leaving for the autorouter`,
+        `[pcbComb] ${trace} (${combOrientation}): fixed comb doesn't fit — leaving for the autorouter`,
       )
       return
     }

@@ -644,6 +644,7 @@ declare class Trace extends PrimitiveComponent<typeof traceProps> implements Tra
             }>, z.ZodString]>, "many">, "many">>;
             routingPhaseIndex: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
             pcbStraightLine: z.ZodOptional<z.ZodBoolean>;
+            pcbComb: z.ZodOptional<z.ZodEnum<["columnToColumn", "rowToColumn", "columnToRow", "rowToRow"]>>;
             schDisplayLabel: z.ZodOptional<z.ZodString>;
             schStroke: z.ZodOptional<z.ZodString>;
             highlightColor: z.ZodOptional<z.ZodString>;
@@ -695,6 +696,7 @@ declare class Trace extends PrimitiveComponent<typeof traceProps> implements Tra
                 toLayer?: "top" | "bottom" | "inner1" | "inner2" | "inner3" | "inner4" | "inner5" | "inner6" | undefined;
             })[][] | undefined;
             pcbStraightLine?: boolean | undefined;
+            pcbComb?: "columnToColumn" | "rowToColumn" | "columnToRow" | "rowToRow" | undefined;
             schDisplayLabel?: string | undefined;
             schStroke?: string | undefined;
         }, {
@@ -747,6 +749,7 @@ declare class Trace extends PrimitiveComponent<typeof traceProps> implements Tra
                 } | undefined;
             })[][] | undefined;
             pcbStraightLine?: boolean | undefined;
+            pcbComb?: "columnToColumn" | "rowToColumn" | "columnToRow" | "rowToRow" | undefined;
             schDisplayLabel?: string | undefined;
             schStroke?: string | undefined;
         }>, z.ZodObject<{
@@ -909,6 +912,7 @@ declare class Trace extends PrimitiveComponent<typeof traceProps> implements Tra
             }>, z.ZodString]>, "many">, "many">>;
             routingPhaseIndex: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
             pcbStraightLine: z.ZodOptional<z.ZodBoolean>;
+            pcbComb: z.ZodOptional<z.ZodEnum<["columnToColumn", "rowToColumn", "columnToRow", "rowToRow"]>>;
             schDisplayLabel: z.ZodOptional<z.ZodString>;
             schStroke: z.ZodOptional<z.ZodString>;
             highlightColor: z.ZodOptional<z.ZodString>;
@@ -968,6 +972,7 @@ declare class Trace extends PrimitiveComponent<typeof traceProps> implements Tra
                 toLayer?: "top" | "bottom" | "inner1" | "inner2" | "inner3" | "inner4" | "inner5" | "inner6" | undefined;
             })[][] | undefined;
             pcbStraightLine?: boolean | undefined;
+            pcbComb?: "columnToColumn" | "rowToColumn" | "columnToRow" | "rowToRow" | undefined;
             schDisplayLabel?: string | undefined;
             schStroke?: string | undefined;
         }, {
@@ -1023,6 +1028,7 @@ declare class Trace extends PrimitiveComponent<typeof traceProps> implements Tra
                 } | undefined;
             })[][] | undefined;
             pcbStraightLine?: boolean | undefined;
+            pcbComb?: "columnToColumn" | "rowToColumn" | "columnToRow" | "rowToRow" | undefined;
             schDisplayLabel?: string | undefined;
             schStroke?: string | undefined;
         }>, z.ZodObject<{
@@ -1185,6 +1191,7 @@ declare class Trace extends PrimitiveComponent<typeof traceProps> implements Tra
             }>, z.ZodString]>, "many">, "many">>;
             routingPhaseIndex: z.ZodOptional<z.ZodNullable<z.ZodNumber>>;
             pcbStraightLine: z.ZodOptional<z.ZodBoolean>;
+            pcbComb: z.ZodOptional<z.ZodEnum<["columnToColumn", "rowToColumn", "columnToRow", "rowToRow"]>>;
             schDisplayLabel: z.ZodOptional<z.ZodString>;
             schStroke: z.ZodOptional<z.ZodString>;
             highlightColor: z.ZodOptional<z.ZodString>;
@@ -1244,6 +1251,7 @@ declare class Trace extends PrimitiveComponent<typeof traceProps> implements Tra
                 toLayer?: "top" | "bottom" | "inner1" | "inner2" | "inner3" | "inner4" | "inner5" | "inner6" | undefined;
             })[][] | undefined;
             pcbStraightLine?: boolean | undefined;
+            pcbComb?: "columnToColumn" | "rowToColumn" | "columnToRow" | "rowToRow" | undefined;
             schDisplayLabel?: string | undefined;
             schStroke?: string | undefined;
         }, {
@@ -1299,6 +1307,7 @@ declare class Trace extends PrimitiveComponent<typeof traceProps> implements Tra
                 } | undefined;
             })[][] | undefined;
             pcbStraightLine?: boolean | undefined;
+            pcbComb?: "columnToColumn" | "rowToColumn" | "columnToRow" | "rowToRow" | undefined;
             schDisplayLabel?: string | undefined;
             schStroke?: string | undefined;
         }>]>;

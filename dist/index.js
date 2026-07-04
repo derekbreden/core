@@ -3570,9 +3570,9 @@ var getViaDiameterDefaultsWithOverrides = (overrides, pcbStyle) => {
   };
 };
 
-// lib/utils/computeFanWaypoints.ts
+// lib/utils/computeCombWaypoints.ts
 var monotone = (vals, sgn) => vals.every((v, i) => i === 0 || sgn * (v - vals[i - 1]) >= -1e-6);
-function computeFanWaypoints(s, t, orientation, stub = 1) {
+function computeCombWaypoints(s, t, orientation, stub = 1) {
   const sgx = Math.sign(t.x - s.x) || 1;
   const sgy = Math.sign(t.y - s.y) || 1;
   let p1;
@@ -3745,10 +3745,10 @@ function Trace_doInitialPcbManualTraceRender(trace) {
   const subcircuit = trace.getSubcircuit();
   const hasPcbPath = props.pcbPath !== void 0;
   const wantsStraightLine = Boolean(props.pcbStraightLine);
-  const fanOrientation = props.pcbFan;
-  const wantsFan = Boolean(fanOrientation);
+  const combOrientation = props.pcbComb;
+  const wantsComb = Boolean(combOrientation);
   const inflatedPcbTraces = trace._inflatedPcbTraces ?? [];
-  if (!hasPcbPath && !wantsStraightLine && !wantsFan && inflatedPcbTraces.length === 0)
+  if (!hasPcbPath && !wantsStraightLine && !wantsComb && inflatedPcbTraces.length === 0)
     return;
   let allPortsFound;
   let ports;
@@ -3949,9 +3949,9 @@ function Trace_doInitialPcbManualTraceRender(trace) {
     trace._insertErrorIfTraceIsOutsideBoard(route2, ports);
     return;
   }
-  if (wantsFan && !hasPcbPath) {
+  if (wantsComb && !hasPcbPath) {
     if (!ports || ports.length < 2) {
-      trace.renderError("pcbFan requires exactly two connected ports");
+      trace.renderError("pcbComb requires exactly two connected ports");
       return;
     }
     const [startPort, endPort] = ports;
@@ -3961,10 +3961,10 @@ function Trace_doInitialPcbManualTraceRender(trace) {
     const layer2 = sharedLayer ?? startLayers[0] ?? endLayers[0] ?? "top";
     const startPos = startPort._getGlobalPcbPositionAfterLayout();
     const endPos = endPort._getGlobalPcbPositionAfterLayout();
-    const bends = computeFanWaypoints(startPos, endPos, fanOrientation);
+    const bends = computeCombWaypoints(startPos, endPos, combOrientation);
     if (!bends) {
       console.warn(
-        `[pcbFan] ${trace} (${fanOrientation}): fixed fan doesn't fit \u2014 leaving for the autorouter`
+        `[pcbComb] ${trace} (${combOrientation}): fixed comb doesn't fit \u2014 leaving for the autorouter`
       );
       return;
     }
@@ -4199,7 +4199,7 @@ function Trace_doInitialPcbTraceRender(trace) {
   if (props.pcbStraightLine) {
     return;
   }
-  if (props.pcbFan && trace.pcb_trace_id) {
+  if (props.pcbComb && trace.pcb_trace_id) {
     return;
   }
   if (!subcircuit._shouldUseTraceByTraceRouting()) {
