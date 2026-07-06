@@ -926,6 +926,16 @@ export class Group<Props extends z.ZodType<any, any, any> = typeof groupProps>
           : undefined
       if (_vm === "through-hole" || _vm === "any")
         baseSimpleRouteJson.viaMode = _vm
+      // PATCH(homesodamachine): plumb autorouter.viaInPad -> the SimpleRouteJson. When true, the
+      // capacity-autorouter fork moves each route's first/last transition via onto its terminal SMD
+      // pad (via-in-pad) where the barrel column + replacement segment clear all foreign copper.
+      // Requires filled/capped vias at fab. Default (unset) = transition vias land off the pad.
+      const _vip =
+        (props as any).autorouter &&
+        typeof (props as any).autorouter === "object"
+          ? (props as any).autorouter.viaInPad
+          : undefined
+      if (_vip === true) baseSimpleRouteJson.viaInPad = true
     }
     const routingPhasePlans = this._getRoutingPhasePlans()
     const hasPhasedAutorouting = Group_hasPhasedAutorouting(routingPhasePlans)

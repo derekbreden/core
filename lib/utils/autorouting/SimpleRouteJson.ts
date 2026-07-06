@@ -113,6 +113,10 @@ export type SimpleRouteJson = Omit<
   // (same channel as defaultObstacleMargin). "through-hole" routes on all copper layers but only
   // births a via where the full board column is clear, emitting it top<->bottom.
   viaMode?: "through-hole" | "any"
+  // PATCH(homesodamachine): plumbs autorouter.viaInPad through to the capacity-autorouter fork. When
+  // true, a post-routing pass moves each route's first/last transition via onto its terminal SMD pad
+  // (via-in-pad) where the barrel column and replacement segment clear all foreign copper.
+  viaInPad?: boolean
   minTraceToPadEdgeClearance?: number
   minViaEdgeToPadEdgeClearance?: number
   minViaHoleEdgeToViaHoleEdgeClearance?: number
