@@ -936,6 +936,16 @@ export class Group<Props extends z.ZodType<any, any, any> = typeof groupProps>
           ? (props as any).autorouter.viaInPad
           : undefined
       if (_vip === true) baseSimpleRouteJson.viaInPad = true
+      // PATCH(homesodamachine): plumb autorouter.viaRingKeepout -> the SimpleRouteJson. When false,
+      // the rectdiff fork skips the via-ring keepout carve (the pad-adjacent full-stack node split);
+      // via-ring-to-pad clearance is then enforced by the post-route DRC, not the mesh. A large
+      // routing speedup on dense boards where the carve isn't binding. Default (unset) = carve runs.
+      const _vrk =
+        (props as any).autorouter &&
+        typeof (props as any).autorouter === "object"
+          ? (props as any).autorouter.viaRingKeepout
+          : undefined
+      if (_vrk === false) baseSimpleRouteJson.viaRingKeepout = false
     }
     const routingPhasePlans = this._getRoutingPhasePlans()
     const hasPhasedAutorouting = Group_hasPhasedAutorouting(routingPhasePlans)

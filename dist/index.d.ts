@@ -135,6 +135,7 @@ type SimpleRouteJson = Omit<SimpleRouteJson$1, "connections" | "traces" | "obsta
     defaultObstacleMargin?: number;
     viaMode?: "through-hole" | "any";
     viaInPad?: boolean;
+    viaRingKeepout?: boolean;
     minTraceToPadEdgeClearance?: number;
     minViaEdgeToPadEdgeClearance?: number;
     minViaHoleEdgeToViaHoleEdgeClearance?: number;

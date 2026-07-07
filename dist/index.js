@@ -23178,6 +23178,8 @@ var Group5 = class extends NormalComponent3 {
         baseSimpleRouteJson.viaMode = _vm;
       const _vip = props.autorouter && typeof props.autorouter === "object" ? props.autorouter.viaInPad : void 0;
       if (_vip === true) baseSimpleRouteJson.viaInPad = true;
+      const _vrk = props.autorouter && typeof props.autorouter === "object" ? props.autorouter.viaRingKeepout : void 0;
+      if (_vrk === false) baseSimpleRouteJson.viaRingKeepout = false;
     }
     const routingPhasePlans = this._getRoutingPhasePlans();
     const hasPhasedAutorouting = Group_hasPhasedAutorouting(routingPhasePlans);

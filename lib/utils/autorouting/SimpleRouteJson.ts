@@ -117,6 +117,11 @@ export type SimpleRouteJson = Omit<
   // true, a post-routing pass moves each route's first/last transition via onto its terminal SMD pad
   // (via-in-pad) where the barrel column and replacement segment clear all foreign copper.
   viaInPad?: boolean
+  // PATCH(homesodamachine): plumbs autorouter.viaRingKeepout through to the rectdiff fork. When
+  // false, rectdiff skips the via-ring keepout carve (the pad-adjacent full-stack node split that
+  // guarantees a via ring clears foreign pads), leaving that clearance to the post-route DRC —
+  // a large mesh/solve-cost reduction on dense boards. Default (unset): the carve runs.
+  viaRingKeepout?: boolean
   minTraceToPadEdgeClearance?: number
   minViaEdgeToPadEdgeClearance?: number
   minViaHoleEdgeToViaHoleEdgeClearance?: number
