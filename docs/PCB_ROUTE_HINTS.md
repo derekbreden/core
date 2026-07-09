@@ -76,6 +76,9 @@ excluded from it, so they behave identically in both modes:
 - **`pcbStraightLine`** — a straight two-point trace.
 - **`pcbPath`** — an explicit path of waypoints, where a `{ …, via: true }` point
   carries `fromLayer` / `toLayer` and emits a real `pcb_via`, with full per-segment
-  layer control.
+  layer control. Numeric `{ x, y }` points resolve in the `pcbPathRelativeTo` anchor
+  component's frame (default: the first connected port's component); string port
+  selectors resolve to their global position. `pcbPathRelativeTo="board"` makes the
+  numeric points board coordinates too — no anchor transform.
 
 These produce exact geometry, vias, and layers regardless of which autorouter runs.

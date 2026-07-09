@@ -3992,8 +3992,9 @@ function Trace_doInitialPcbManualTraceRender(trace) {
     return;
   }
   if (!props.pcbPath) return;
+  const pathInBoardFrame = props.pcbPathRelativeTo === "board";
   let anchorPort;
-  if (props.pcbPathRelativeTo) {
+  if (props.pcbPathRelativeTo && !pathInBoardFrame) {
     anchorPort = portsWithSelectors.find(
       (p) => p.selector === props.pcbPathRelativeTo
     )?.port;
@@ -4018,7 +4019,7 @@ function Trace_doInitialPcbManualTraceRender(trace) {
     layer: currentLayer,
     start_pcb_port_id: anchorPort.pcb_port_id
   });
-  const transform = subcircuit._isInflatedFromCircuitJson ? trace._computePcbGlobalTransformBeforeLayout() : anchorPort?._computePcbGlobalTransformBeforeLayout?.() || identity2();
+  const transform = pathInBoardFrame ? identity2() : subcircuit._isInflatedFromCircuitJson ? trace._computePcbGlobalTransformBeforeLayout() : anchorPort?._computePcbGlobalTransformBeforeLayout?.() || identity2();
   const pcbPath = props.pcbPath;
   for (const pt of pcbPath) {
     let coordinates;

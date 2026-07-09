@@ -368,8 +368,11 @@ export function Trace_doInitialPcbManualTraceRender(trace: Trace) {
 
   if (!props.pcbPath) return
 
+  // pcbPathRelativeTo="board": numeric pcbPath points are board coordinates (the frame string
+  // selector points already resolve in), so no anchor transform is applied to them.
+  const pathInBoardFrame = props.pcbPathRelativeTo === "board"
   let anchorPort: Port | undefined
-  if (props.pcbPathRelativeTo) {
+  if (props.pcbPathRelativeTo && !pathInBoardFrame) {
     anchorPort = portsWithSelectors.find(
       (p) => p.selector === props.pcbPathRelativeTo,
     )?.port
@@ -399,9 +402,11 @@ export function Trace_doInitialPcbManualTraceRender(trace: Trace) {
     layer: currentLayer,
     start_pcb_port_id: anchorPort.pcb_port_id!,
   })
-  const transform = subcircuit._isInflatedFromCircuitJson
-    ? trace._computePcbGlobalTransformBeforeLayout()
-    : anchorPort?._computePcbGlobalTransformBeforeLayout?.() || identity()
+  const transform = pathInBoardFrame
+    ? identity()
+    : subcircuit._isInflatedFromCircuitJson
+      ? trace._computePcbGlobalTransformBeforeLayout()
+      : anchorPort?._computePcbGlobalTransformBeforeLayout?.() || identity()
   const pcbPath = props.pcbPath as Array<string | ManualPcbPathPoint>
   for (const pt of pcbPath) {
     let coordinates: { x: number; y: number }
