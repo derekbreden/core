@@ -3860,11 +3860,7 @@ function Trace_doInitialPcbManualTraceRender(trace) {
           const toLayer = maybeFlipLayer(
             inflatedPcbVia?.to_layer ?? point6.to_layer
           );
-          const layers = (inflatedPcbVia?.layers ?? getViaSpanLayers({
-            fromLayer: point6.from_layer,
-            toLayer: point6.to_layer,
-            layerCount: subcircuit._getSubcircuitLayerCount()
-          })).map((layer2) => maybeFlipLayer(layer2));
+          const layers = (inflatedPcbVia?.layers ?? getViaBoardLayers(subcircuit._getSubcircuitLayerCount())).map((layer2) => maybeFlipLayer(layer2));
           db.pcb_via.insert({
             pcb_trace_id: pcb_trace2.pcb_trace_id,
             x: point6.x,
@@ -4116,11 +4112,9 @@ function Trace_doInitialPcbManualTraceRender(trace) {
         y: point6.y,
         hole_diameter: holeDiameter,
         outer_diameter: padDiameter,
-        layers: getViaSpanLayers({
-          fromLayer,
-          toLayer,
-          layerCount: subcircuit._getSubcircuitLayerCount()
-        }),
+        // Drilled through-hole: the barrel spans the full stack even when the
+        // copper transition (from_layer/to_layer) ends on an inner layer.
+        layers: getViaBoardLayers(subcircuit._getSubcircuitLayerCount()),
         from_layer: fromLayer,
         to_layer: toLayer,
         subcircuit_id: subcircuit?.subcircuit_id ?? void 0,

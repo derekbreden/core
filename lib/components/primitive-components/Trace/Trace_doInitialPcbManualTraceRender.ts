@@ -13,7 +13,7 @@ import {
 import { TraceConnectionError } from "lib/errors"
 import { getPcbSelectorErrorForTracePort } from "./getPcbSelectorErrorForTracePort"
 import { jlcMinTolerances } from "@tscircuit/jlcpcb-manufacturing-specs"
-import { getViaSpanLayers } from "lib/utils/getViaSpanLayers"
+import { getViaBoardLayers } from "lib/utils/getViaSpanLayers"
 
 const findInflatedPcbViaForPoint = (
   vias: PcbVia[] | undefined,
@@ -196,13 +196,13 @@ export function Trace_doInitialPcbManualTraceRender(trace: Trace) {
           const toLayer = maybeFlipLayer(
             (inflatedPcbVia?.to_layer ?? point.to_layer) as LayerRef,
           )
+          // A manual-trace via is a drilled through-hole: the barrel spans the
+          // full stack no matter which layers the copper enters/leaves on
+          // (from_layer/to_layer below keep the copper transition). Pour
+          // solvers and DRC read `layers` as the barrel's physical presence.
           const layers = (
             inflatedPcbVia?.layers ??
-            getViaSpanLayers({
-              fromLayer: point.from_layer as LayerRef,
-              toLayer: point.to_layer as LayerRef,
-              layerCount: subcircuit._getSubcircuitLayerCount(),
-            })
+            getViaBoardLayers(subcircuit._getSubcircuitLayerCount())
           ).map((layer) => maybeFlipLayer(layer as LayerRef))
 
           db.pcb_via.insert({
@@ -518,11 +518,9 @@ export function Trace_doInitialPcbManualTraceRender(trace: Trace) {
         y: point.y,
         hole_diameter: holeDiameter,
         outer_diameter: padDiameter,
-        layers: getViaSpanLayers({
-          fromLayer,
-          toLayer,
-          layerCount: subcircuit._getSubcircuitLayerCount(),
-        }),
+        // Drilled through-hole: the barrel spans the full stack even when the
+        // copper transition (from_layer/to_layer) ends on an inner layer.
+        layers: getViaBoardLayers(subcircuit._getSubcircuitLayerCount()),
         from_layer: fromLayer,
         to_layer: toLayer,
         subcircuit_id: subcircuit?.subcircuit_id ?? undefined,
